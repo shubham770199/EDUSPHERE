@@ -34,6 +34,8 @@ app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/lectures', require('./routes/lectures'));
+app.use('/api/chat', require('./routes/chat'));
 app.use('/api/seed', require('./routes/seed'));
 
 // --- Error handling ---
