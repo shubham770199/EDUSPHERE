@@ -1,207 +1,184 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { attendanceService, AttendanceRecord } from '@/services/attendanceService';
-import { notificationService } from '@/services/notificationService';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Check, X, Clock, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+import { courseService, Course } from "@/services/courseService";
+import { attendanceService } from "@/services/attendanceService";
 
-interface AttendanceMarkingProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
-  courseId?: string;
-  courseName?: string;
 }
 
-const AttendanceMarking: React.FC<AttendanceMarkingProps> = ({ isOpen, onClose, courseId, courseName }) => {
-  const [selectedCourse, setSelectedCourse] = useState(courseId || '');
-  const [students, setStudents] = useState<any[]>([]);
-  const [attendance, setAttendance] = useState<Map<string, any>>(new Map());
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
+type Status = "present" | "absent" | "late" | "excused";
+const STATUS_OPTIONS: { value: Status; label: string; icon: any; color: string }[] = [
+  { value: "present", label: "Present", icon: Check, color: "bg-emerald-500" },
+  { value: "absent", label: "Absent", icon: X, color: "bg-rose-500" },
+  { value: "late", label: "Late", icon: Clock, color: "bg-amber-500" },
+  { value: "excused", label: "Excused", icon: ShieldCheck, color: "bg-blue-500" },
+];
 
-  const courses = attendanceService.getCourses();
+const today = () => new Date().toISOString().split("T")[0];
+
+const AttendanceMarking = ({ isOpen, onClose }: Props) => {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseId, setCourseId] = useState("");
+  const [date, setDate] = useState(today());
+  const [marks, setMarks] = useState<Record<string, Status>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (selectedCourse) {
-      const courseStudents = attendanceService.getCourseStudents(selectedCourse);
-      const course = courses.find(c => c.id === selectedCourse);
-      const studentList = [
-        { id: 'student1', name: 'Alice Johnson' },
-        { id: 'student2', name: 'Bob Smith' },
-        { id: 'student3', name: 'Carol White' }
-      ].filter(s => courseStudents.includes(s.id));
-      
-      setStudents(studentList);
-      
-      // Initialize attendance state
-      const newAttendance = new Map();
-      studentList.forEach(student => {
-        newAttendance.set(student.id, {
-          status: 'present',
-          remarks: ''
-        });
-      });
-      setAttendance(newAttendance);
+    if (isOpen) {
+      courseService.list().then(setCourses).catch(() => setCourses([]));
+      setCourseId("");
+      setMarks({});
+      setDate(today());
     }
-  }, [selectedCourse]);
+  }, [isOpen]);
 
-  const handleStatusChange = (studentId: string, status: string) => {
-    const current = attendance.get(studentId) || {};
-    setAttendance(new Map(attendance.set(studentId, { ...current, status })));
-  };
+  const selectedCourse = courses.find((c) => c._id === courseId);
+  const students = selectedCourse?.students || [];
 
-  const handleRemarksChange = (studentId: string, remarks: string) => {
-    const current = attendance.get(studentId) || {};
-    setAttendance(new Map(attendance.set(studentId, { ...current, remarks })));
-  };
+  // Default everyone to present when a course is chosen, and try to preload existing marks.
+  useEffect(() => {
+    if (!selectedCourse) return;
+    const defaults: Record<string, Status> = {};
+    selectedCourse.students.forEach((s) => (defaults[s._id] = "present"));
+    setMarks(defaults);
+
+    attendanceService
+      .forCourse(courseId, date)
+      .then((records) => {
+        if (records.length) {
+          const existing: Record<string, Status> = { ...defaults };
+          records.forEach((r) => (existing[r.student._id] = r.status));
+          setMarks(existing);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, date]);
+
+  const setStatus = (studentId: string, status: Status) =>
+    setMarks((prev) => ({ ...prev, [studentId]: status }));
 
   const handleSubmit = async () => {
-    if (!selectedCourse) {
-      toast.error('Please select a course');
+    if (!courseId) {
+      toast.error("Select a course first");
       return;
     }
-
-    setIsSubmitting(true);
+    if (students.length === 0) {
+      toast.error("This course has no enrolled students");
+      return;
+    }
+    setSubmitting(true);
     try {
-      const course = courses.find(c => c.id === selectedCourse);
-      const attendanceData = students.map(student => ({
-        studentId: student.id,
-        studentName: student.name,
-        status: attendance.get(student.id)?.status || 'present',
-        remarks: attendance.get(student.id)?.remarks
-      }));
-
-      const records = attendanceService.markClassAttendance(
-        selectedCourse,
-        course?.name || 'Unknown Course',
-        attendanceData
-      );
-
-      // Send notifications to students
-      attendanceData.forEach(data => {
-        notificationService.createNotification(
-          data.studentId,
-          'Attendance Marked',
-          `Your attendance for ${course?.name || 'class'} has been marked as ${data.status}`,
-          'attendance'
-        );
-      });
-
-      toast.success(`Attendance marked for ${records.length} students`);
-      handleClose();
-    } catch (error) {
-      console.error('Error marking attendance:', error);
-      toast.error('Failed to mark attendance');
+      const records = students.map((s) => ({ student: s._id, status: marks[s._id] || "present" }));
+      await attendanceService.mark(courseId, date, records);
+      toast.success("Attendance saved ✅");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save attendance");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
-  const handleClose = () => {
-    setSelectedCourse(courseId || '');
-    setAttendance(new Map());
-    onClose();
-  };
+  const presentCount = students.filter((s) => ["present", "late"].includes(marks[s._id])).length;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl">
+    <Dialog open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Mark Attendance</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-primary" /> Mark Attendance
+          </DialogTitle>
+          <DialogDescription>Record attendance for a class session.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-          {/* Course Selection */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="course-select">Select Course</Label>
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-              <SelectTrigger id="course-select">
-                <SelectValue placeholder="Choose a course" />
+            <Label>Course</Label>
+            <Select value={courseId} onValueChange={setCourseId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a course" />
               </SelectTrigger>
               <SelectContent>
-                {courses.map(course => (
-                  <SelectItem key={course.id} value={course.id}>
-                    {course.name}
+                {courses.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>
+                    {c.code} — {c.title}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {/* Students List */}
-          {students.length > 0 && (
-            <div className="space-y-3">
-              <Label>Mark Attendance for Students</Label>
-              <div className="space-y-2 border rounded-lg p-4 bg-muted/30">
-                {students.map(student => (
-                  <Card key={student.id} className="border">
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-4">
-                          <div className="flex-1">
-                            <p className="font-medium">{student.name}</p>
-                            <p className="text-sm text-muted-foreground">ID: {student.id}</p>
-                          </div>
-                          <Select 
-                            value={attendance.get(student.id)?.status || 'present'}
-                            onValueChange={(value) => handleStatusChange(student.id, value)}
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="present">
-                                <Badge className="bg-green-500">Present</Badge>
-                              </SelectItem>
-                              <SelectItem value="absent">
-                                <Badge className="bg-red-500">Absent</Badge>
-                              </SelectItem>
-                              <SelectItem value="late">
-                                <Badge className="bg-yellow-500">Late</Badge>
-                              </SelectItem>
-                              <SelectItem value="excused">
-                                <Badge className="bg-blue-500">Excused</Badge>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-xs">Remarks (Optional)</Label>
-                          <Textarea
-                            placeholder="Add any remarks..."
-                            value={attendance.get(student.id)?.remarks || ''}
-                            onChange={(e) => handleRemarksChange(student.id, e.target.value)}
-                            className="text-sm min-h-12"
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {students.length === 0 && selectedCourse && (
-            <div className="text-center py-8 text-muted-foreground">
-              No students in this course
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
         </div>
 
-        <div className="flex gap-2 justify-end pt-4 border-t">
-          <Button variant="outline" onClick={handleClose}>
+        {selectedCourse && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              {students.length} student{students.length !== 1 && "s"} enrolled
+            </span>
+            <Badge variant="outline">
+              {presentCount}/{students.length} present
+            </Badge>
+          </div>
+        )}
+
+        <div className="max-h-72 overflow-y-auto space-y-2">
+          {students.length === 0 && selectedCourse && (
+            <p className="text-sm text-muted-foreground text-center py-6">No students enrolled in this course.</p>
+          )}
+          {students.map((s) => (
+            <div key={s._id} className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <p className="font-medium text-sm">{s.name}</p>
+                {s.rollNumber && <p className="text-xs text-muted-foreground">{s.rollNumber}</p>}
+              </div>
+              <div className="flex gap-1">
+                {STATUS_OPTIONS.map((opt) => {
+                  const active = marks[s._id] === opt.value;
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setStatus(s._id, opt.value)}
+                      title={opt.label}
+                      className={`h-8 w-8 rounded-md flex items-center justify-center transition-all ${
+                        active ? `${opt.color} text-white` : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || students.length === 0}>
-            {isSubmitting ? 'Saving...' : 'Mark Attendance'}
+          <Button onClick={handleSubmit} disabled={submitting || !courseId}>
+            {submitting ? "Saving..." : "Save Attendance"}
           </Button>
         </div>
       </DialogContent>

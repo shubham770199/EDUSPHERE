@@ -1,78 +1,8 @@
-// import { Toaster } from "@/components/ui/toaster";
-// import { Toaster as Sonner } from "@/components/ui/sonner";
-// import { TooltipProvider } from "@/components/ui/tooltip";
-// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-// import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import { AuthProvider } from "@/contexts/AuthContext";
-// import ProtectedRoute from "@/components/ProtectedRoute";
-// import ChatBot from "@/components/ChatBot";
-// import Landing from "./pages/Landing";
-// import Login from "./pages/Login";
-// import Register from "./pages/Register";
-// import StudentDashboard from "./pages/StudentDashboard";
-// import TeacherDashboard from "./pages/TeacherDashboard";
-// import AdminDashboard from "./pages/AdminDashboard";
-// import Unauthorized from "./pages/Unauthorized";
-// import NotFound from "./pages/NotFound";
-
-// const queryClient = new QueryClient();
-
-// const App = () => (
-//   <QueryClientProvider client={queryClient}>
-//     <TooltipProvider>
-//       <AuthProvider>
-//         <Toaster />
-//         <Sonner />
-//         <BrowserRouter>
-//           <Routes>
-//             {/* Public Routes */}
-//             <Route path="/" element={<Landing />} />
-//             <Route path="/login" element={<Login />} />
-//             <Route path="/register" element={<Register />} />
-//             <Route path="/unauthorized" element={<Unauthorized />} />
-            
-//             {/* Protected Routes */}
-//             <Route 
-//               path="/student" 
-//               element={
-//                 <ProtectedRoute allowedRoles={['student']}>
-//                   <StudentDashboard />
-//                 </ProtectedRoute>
-//               } 
-//             />
-//             <Route 
-//               path="/teacher" 
-//               element={
-//                 <ProtectedRoute allowedRoles={['teacher']}>
-//                   <TeacherDashboard />
-//                 </ProtectedRoute>
-//               } 
-//             />
-//             <Route 
-//               path="/admin" 
-//               element={
-//                 <ProtectedRoute allowedRoles={['admin']}>
-//                   <AdminDashboard />
-//                 </ProtectedRoute>
-//               } 
-//             />
-
-//             {/* Catch-all route */}
-//             <Route path="*" element={<NotFound />} />
-//           </Routes>
-//           <ChatBot />
-//         </BrowserRouter>
-//       </AuthProvider>
-//     </TooltipProvider>
-//   </QueryClientProvider>
-// );
-
-// export default App;
-// App.tsx
-import { Toaster } from "@/components/ui/toaster"; // only one toaster
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ChatBot from "@/components/ChatBot";
@@ -84,6 +14,8 @@ import Register from "./pages/Register";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Courses from "./pages/Courses";
+import Profile from "./pages/Profile";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 
@@ -91,54 +23,71 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          {/* Toaster inside Router */}
-          <Toaster />
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <TooltipProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Sonner position="top-right" richColors />
 
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/unauthorized" element={<Unauthorized />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/student"
-              element={
-                <ProtectedRoute allowedRoles={["student"]}>
-                  <StudentDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teacher"
-              element={
-                <ProtectedRoute allowedRoles={["teacher"]}>
-                  <TeacherDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute allowedRoles={["admin"]}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
+              {/* Role-protected dashboards */}
+              <Route
+                path="/student"
+                element={
+                  <ProtectedRoute allowedRoles={["student"]}>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher"
+                element={
+                  <ProtectedRoute allowedRoles={["teacher"]}>
+                    <TeacherDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Catch-all */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* Shared protected pages (any logged-in role) */}
+              <Route
+                path="/courses"
+                element={
+                  <ProtectedRoute>
+                    <Courses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* ChatBot always visible */}
-          <ChatBot />
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+
+            <ChatBot />
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

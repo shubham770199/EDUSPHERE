@@ -1,30 +1,38 @@
-export type UserRole = 'student' | 'teacher' | 'admin';
+export type UserRole = "student" | "teacher" | "admin";
 
 export interface User {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  rollNumber?: string;
+  department?: string;
+  phone?: string;
+  bio?: string;
   avatar?: string;
-  createdAt: string;
-  updatedAt: string;
+  badges?: string[];
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LoginCredentials {
   email: string;
   password: string;
-  role: UserRole;
 }
 
-export interface RegisterData extends LoginCredentials {
+export interface RegisterData {
   name: string;
-  confirmPassword: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  role: UserRole;
+  department?: string;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
-  message: string;
 }
 
 export interface AuthContextType {
@@ -32,8 +40,9 @@ export interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<User>;
+  register: (data: RegisterData) => Promise<User>;
   logout: () => void;
   updateUser: (user: User) => void;
+  refreshUser: () => Promise<void>;
 }

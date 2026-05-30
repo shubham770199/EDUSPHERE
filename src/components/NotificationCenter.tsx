@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,82 +9,76 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Check, X, Info, AlertCircle, CheckCircle, FileText, Calendar } from "lucide-react";
+import { Bell, X, Info, AlertCircle, CheckCircle, FileText, Calendar, Megaphone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { notificationService } from "@/services/notificationService";
+import { notificationService, NotificationItem } from "@/services/notificationService";
 
-interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  type: "info" | "success" | "warning" | "error" | "assignment" | "attendance" | "grade";
-  read: boolean;
-  timestamp: string;
-}
+const formatTime = (createdAt: string) => {
+  const diff = Date.now() - new Date(createdAt).getTime();
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
+  return `${d}d ago`;
+};
 
 const NotificationCenter = () => {
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unread, setUnread] = useState(0);
 
+  const load = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const data = await notificationService.list();
+      setNotifications(data.notifications);
+      setUnread(data.unread);
+    } catch {
+      /* ignore */
+    }
+  }, [isAuthenticated]);
+
+  // Initial load + light polling so new notifications appear during a demo.
   useEffect(() => {
-    if (user) {
-      const userNotifications = notificationService.getUserNotifications(user.id);
-      const formattedNotifications = userNotifications.map(n => ({
-        ...n,
-        timestamp: formatTime(n.createdAt)
-      }));
-      setNotifications(formattedNotifications);
-    }
-  }, [user]);
+    load();
+    const id = setInterval(load, 20000);
+    return () => clearInterval(id);
+  }, [load]);
 
-  const formatTime = (createdAt: string) => {
-    const date = new Date(createdAt);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return "just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+  const markAsRead = async (id: string) => {
+    await notificationService.markRead(id);
+    setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, read: true } : n)));
+    setUnread((u) => Math.max(0, u - 1));
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const markAsRead = (id: string) => {
-    notificationService.markAsRead(id);
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+  const markAllAsRead = async () => {
+    await notificationService.markAllRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setUnread(0);
   };
 
-  const markAllAsRead = () => {
-    if (user) {
-      notificationService.markAllAsRead(user.id);
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, read: true }))
-      );
-    }
+  const remove = async (id: string) => {
+    const wasUnread = notifications.find((n) => n._id === id && !n.read);
+    await notificationService.remove(id);
+    setNotifications((prev) => prev.filter((n) => n._id !== id));
+    if (wasUnread) setUnread((u) => Math.max(0, u - 1));
   };
 
-  const removeNotification = (id: string) => {
-    notificationService.deleteNotification(id);
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  const getNotificationIcon = (type: string) => {
+  const getIcon = (type: string) => {
     switch (type) {
       case "success":
       case "grade":
-        return <CheckCircle className="h-4 w-4 text-success" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "warning":
-        return <AlertCircle className="h-4 w-4 text-warning" />;
+        return <AlertCircle className="h-4 w-4 text-amber-500" />;
       case "assignment":
         return <FileText className="h-4 w-4 text-primary" />;
       case "attendance":
-        return <Calendar className="h-4 w-4 text-secondary" />;
+        return <Calendar className="h-4 w-4 text-blue-500" />;
+      case "announcement":
+        return <Megaphone className="h-4 w-4 text-purple-500" />;
       case "error":
         return <AlertCircle className="h-4 w-4 text-destructive" />;
       default:
@@ -94,16 +87,16 @@ const NotificationCenter = () => {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => open && load()}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
+          {unread > 0 && (
+            <Badge
+              variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
             >
-              {unreadCount > 99 ? "99+" : unreadCount}
+              {unread > 99 ? "99+" : unread}
             </Badge>
           )}
         </Button>
@@ -111,37 +104,30 @@ const NotificationCenter = () => {
       <DropdownMenuContent className="w-80" align="end" forceMount>
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notifications</span>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-xs h-6 px-2"
-            >
+          {unread > 0 && (
+            <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-6 px-2">
               Mark all read
             </Button>
           )}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        
+
         {notifications.length === 0 ? (
-          <div className="p-4 text-center text-sm text-muted-foreground">
-            No notifications
-          </div>
+          <div className="p-4 text-center text-sm text-muted-foreground">No notifications</div>
         ) : (
           <div className="max-h-80 overflow-y-auto">
-            {notifications.map((notification) => (
+            {notifications.map((n) => (
               <DropdownMenuItem
-                key={notification.id}
+                key={n._id}
                 className="flex-col items-start gap-2 p-3 cursor-pointer"
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => !n.read && markAsRead(n._id)}
               >
                 <div className="flex w-full items-start gap-2">
-                  {getNotificationIcon(notification.type)}
+                  {getIcon(n.type)}
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
-                      <p className={`text-sm font-medium ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {notification.title}
+                      <p className={`text-sm font-medium ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                        {n.title}
                       </p>
                       <Button
                         variant="ghost"
@@ -149,23 +135,17 @@ const NotificationCenter = () => {
                         className="h-4 w-4 p-0 hover:bg-destructive hover:text-white"
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeNotification(notification.id);
+                          remove(n._id);
                         }}
                       >
                         <X className="h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {notification.timestamp}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{n.message}</p>
+                    <p className="text-xs text-muted-foreground">{formatTime(n.createdAt)}</p>
                   </div>
+                  {!n.read && <div className="w-2 h-2 bg-primary rounded-full mt-1" />}
                 </div>
-                {!notification.read && (
-                  <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
-                )}
               </DropdownMenuItem>
             ))}
           </div>

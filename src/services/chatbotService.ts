@@ -1,6 +1,3 @@
-import { attendanceService } from './attendanceService';
-import { assignmentService } from './assignmentService';
-
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'bot';

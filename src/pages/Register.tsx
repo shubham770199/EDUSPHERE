@@ -18,7 +18,8 @@ const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Confirm password is required"),
-  role: z.enum(["student", "teacher", "admin"], {
+  department: z.string().optional(),
+  role: z.enum(["student", "teacher"], {
     required_error: "Please select a role",
   }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -47,11 +48,10 @@ const Register = () => {
 
   const onSubmit = async (data: RegisterForm) => {
     try {
-      await register(data as RegisterData);
-      // Navigation will be handled by the ProtectedRoute component
-      navigate(`/${data.role}`);
+      const user = await register(data as RegisterData);
+      navigate(`/${user.role}`);
     } catch (error) {
-      // Error handling is done in the AuthContext
+      // Error toast handled in the AuthContext
     }
   };
 
@@ -108,12 +108,6 @@ const Register = () => {
                               Teacher
                             </div>
                           </SelectItem>
-                          <SelectItem value="admin">
-                            <div className="flex items-center gap-2">
-                              <BookOpen className="h-4 w-4" />
-                              Admin
-                            </div>
-                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -132,6 +126,20 @@ const Register = () => {
                           placeholder="Enter your full name"
                           {...field}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department (optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Computer Science" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

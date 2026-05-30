@@ -1,85 +1,37 @@
-// import { useState } from "react";
-// import axios from "axios";
-
-// export default function Login() {
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-
-//   const submit = async (e:any) => {
-//     e.preventDefault(); //  page reload stop
-
-//     try {
-//       const res = await axios.post("http://localhost:5000/api/login", {
-//         email,
-//         password,
-//       });
-
-//       alert(res.data.message);
-//     } catch (err:any) {
-//       alert("Login Failed ");
-//       console.log(err.response?.data);
-//     }
-//   };
-
-//   return (
-//     <div style={{ padding: 40 }}>
-//       <form onSubmit={submit}>
-//         <h2>Login</h2>
-
-//         <input
-//           placeholder="email"
-//           onChange={(e) => setEmail(e.target.value)}
-//         />
-//         <br />
-
-//         <input
-//           type="password"
-//           placeholder="password"
-//           onChange={(e) => setPassword(e.target.value)}
-//         />
-//         <br />
-
-//         <button type="submit">Login</button>
-//       </form>
-//     </div>
-//   );
-// }
-// pages/Login.tsx
 import { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogIn } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, LogIn, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+
+const DEMO_ACCOUNTS = [
+  { label: "Student", email: "student@edusphere.com" },
+  { label: "Teacher", email: "teacher@edusphere.com" },
+  { label: "Admin", email: "admin@edusphere.com" },
+];
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
-    setIsLoading(true);
-
+    e.preventDefault();
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-      const res = await axios.post(`${apiUrl}/api/login`, {
-        email,
-        password,
-      });
-
-      alert(res.data.message);
-      if(res.data.user) {
-        navigate(`/${res.data.user.role}`); // route to dashboard if role exists
-      }
-    } catch (err: any) {
-      console.error(err.response?.data || err);
-      alert("Login Failed");
-    } finally {
-      setIsLoading(false);
+      const user = await login({ email, password });
+      navigate(`/${user.role}`);
+    } catch {
+      // toast handled in context
     }
+  };
+
+  const fillDemo = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("password123");
   };
 
   return (
@@ -89,9 +41,7 @@ export default function Login() {
       <div className="absolute top-0 -right-4 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animate-delay-2000 dark:bg-blue-900/40"></div>
       <div className="absolute -bottom-8 left-20 w-96 h-96 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animate-delay-4000 dark:bg-indigo-900/40"></div>
 
-      {/* Main Form */}
       <div className="w-full max-w-md space-y-6 relative z-10 p-4">
-        {/* Header */}
         <div className="text-center">
           <Button
             variant="ghost"
@@ -104,7 +54,9 @@ export default function Login() {
           <div className="inline-flex items-center justify-center p-3 bg-gradient-primary rounded-2xl mb-4 text-white shadow-elevated">
             <LogIn className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-extrabold mb-2 bg-gradient-primary bg-clip-text text-transparent">Welcome Back</h1>
+          <h1 className="text-3xl font-extrabold mb-2 bg-gradient-primary bg-clip-text text-transparent">
+            Welcome Back
+          </h1>
           <p className="text-muted-foreground font-medium">Log into your EduSphere account</p>
         </div>
 
@@ -125,14 +77,23 @@ export default function Login() {
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-foreground">Password</label>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-12 bg-white/50 backdrop-blur-sm border-gray-200 dark:bg-black/50 focus:ring-2 focus:ring-primary transition-all duration-300"
-                />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-12 bg-white/50 backdrop-blur-sm border-gray-200 dark:bg-black/50 focus:ring-2 focus:ring-primary transition-all duration-300 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
 
               <Button
@@ -143,15 +104,33 @@ export default function Login() {
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            
+
+            {/* Demo quick-login for the college project demo */}
+            <div className="mt-6">
+              <p className="text-center text-xs text-muted-foreground mb-2">
+                Quick demo login (password: <code>password123</code>)
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {DEMO_ACCOUNTS.map((a) => (
+                  <Button
+                    key={a.email}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full text-xs"
+                    onClick={() => fillDemo(a.email)}
+                  >
+                    {a.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-6 text-center text-sm">
               Don't have an account?{" "}
-              <button
-                onClick={() => navigate("/register")}
-                className="text-primary hover:underline font-bold transition-all duration-300"
-              >
+              <Link to="/register" className="text-primary hover:underline font-bold">
                 Create one now
-              </button>
+              </Link>
             </div>
           </CardContent>
         </Card>

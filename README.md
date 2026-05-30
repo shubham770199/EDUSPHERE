@@ -1,73 +1,158 @@
-# Welcome to your Lovable project
+# 🎓 EduSphere — Cloud-Based Education Management System
 
-## Project info
+A full-stack **MERN** (MongoDB · Express · React · Node) college project that automates academic
+activities and connects **students, teachers and administrators** on one secure platform.
 
-**URL**: https://lovable.dev/projects/2185a639-9e36-44aa-a759-ea231424f913
+It features real **JWT authentication with role-based access control**, a complete REST API,
+and three role-specific dashboards with live analytics charts.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## ✨ Features
 
-**Use Lovable**
+### Core (all roles)
+- 🔐 **JWT authentication** — register / login, hashed passwords (bcrypt), token-protected API
+- 👤 **Role-based access control** — `student`, `teacher`, `admin` with enforced permissions
+- 🔔 **Real-time notifications** — generated on submissions, grades, enrolments, announcements
+- 📢 **Announcements** — broadcast to everyone, a role, or a specific course
+- 🧑‍💼 **Profile management** — edit details + change password
+- 🌗 **Light/Dark theme** toggle
+- 🤖 **AI assistant chatbot** — built-in help bot
+- 📱 **Responsive, modern UI** — Tailwind CSS + shadcn/ui with glassmorphism design
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2185a639-9e36-44aa-a759-ea231424f913) and start prompting.
+### 👨‍🎓 Student
+- Personal dashboard: attendance %, grade average, badges, today's schedule
+- Browse & **self-enrol** in courses
+- View assignments and **submit / resubmit** work (auto late-detection)
+- See grades & teacher feedback, **grade-trend line chart**
+- 🏅 **Gamification** — badges for attendance, top scores and consistency
 
-Changes made via Lovable will be committed automatically to this repo.
+### 👩‍🏫 Teacher
+- Create & manage **courses** and **assignments**
+- **Mark attendance** (present / absent / late / excused) per class session
+- **Grade submissions** with feedback (students are notified)
+- Analytics: enrolment bar chart, pending-grading count, average performance
 
-**Use your preferred IDE**
+### 🛡️ Admin
+- Platform analytics: role distribution **pie chart**, registrations-over-time **bar chart**
+- **User management** table — change roles, suspend accounts, delete users
+- Create users of any role, post platform-wide announcements
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🛠️ Tech Stack
 
-Follow these steps:
+| Layer      | Technology |
+|------------|-----------|
+| Frontend   | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Router, React Query, Recharts |
+| Backend    | Node.js, Express, Mongoose |
+| Database   | MongoDB (Atlas or local) |
+| Auth       | JWT (jsonwebtoken) + bcryptjs |
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 📁 Project Structure
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+EDUSPHERE/
+├── backend/                  # Express REST API
+│   ├── config/db.js          # MongoDB connection
+│   ├── models/               # User, Course, Assignment, Submission,
+│   │                         #   Attendance, Notification, Announcement
+│   ├── middleware/           # auth (protect/authorize), error handling
+│   ├── controllers/          # business logic per resource
+│   ├── routes/               # REST route definitions
+│   ├── utils/                # token, asyncHandler, notify, seed
+│   └── server.js             # app entry point
+│
+└── src/                      # React frontend
+    ├── services/             # api.ts (axios+JWT) + one service per resource
+    ├── contexts/AuthContext  # JWT auth state
+    ├── components/           # NotificationCenter, dialogs, chatbot, UI
+    └── pages/                # Landing, Login, Register, dashboards, Courses, Profile
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🚀 Getting Started
 
-**Use GitHub Codespaces**
+### Prerequisites
+- Node.js 18+ and npm
+- A MongoDB connection string (MongoDB Atlas free tier works great)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 1. Backend
 
-## What technologies are used for this project?
+```bash
+cd backend
+cp .env.example .env        # then edit .env with your MONGO_URI + JWT_SECRET
+npm install
+npm run seed                # (optional) populate demo data
+npm start                   # API runs on http://localhost:5000
+```
 
-This project is built with:
+### 2. Frontend
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```bash
+# from the project root
+cp .env.example .env        # VITE_API_URL=http://localhost:5000
+npm install
+npm run dev                 # app runs on http://localhost:8080
+```
 
-## How can I deploy this project?
+Open **http://localhost:8080** and log in.
 
-Simply open [Lovable](https://lovable.dev/projects/2185a639-9e36-44aa-a759-ea231424f913) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 🔑 Demo Accounts
 
-Yes, you can!
+Run `npm run seed` (or POST `/api/seed`) to create demo data, then use the
+**quick-login buttons** on the login page or sign in manually:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+| Role    | Email                    | Password      |
+|---------|--------------------------|---------------|
+| Admin   | admin@edusphere.com      | `password123` |
+| Teacher | teacher@edusphere.com    | `password123` |
+| Student | student@edusphere.com    | `password123` |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The seed also creates extra teachers/students, 3 courses, 5 assignments,
+sample submissions, attendance records and announcements.
+
+---
+
+## 📡 API Overview
+
+Base URL: `http://localhost:5000/api` — all routes except `/auth/*` and `/seed`
+require an `Authorization: Bearer <token>` header. See **[API_REFERENCE.md](./API_REFERENCE.md)**
+for the full endpoint list, payloads and role requirements.
+
+| Group           | Endpoints |
+|-----------------|-----------|
+| Auth            | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `PUT /auth/profile`, `PUT /auth/password` |
+| Users (admin)   | `GET/POST /users`, `GET/PUT/DELETE /users/:id` |
+| Courses         | `GET/POST /courses`, `GET /courses/available`, `:id/enroll`, `:id/unenroll` |
+| Assignments     | `GET/POST /assignments`, `GET/PUT/DELETE /assignments/:id` |
+| Submissions     | `POST /submissions`, `GET /submissions/me`, `/pending`, `/assignment/:id`, `PUT /:id/grade` |
+| Attendance      | `POST /attendance`, `GET /attendance/me`, `/course/:id`, `/student/:id` |
+| Announcements   | `GET/POST /announcements`, `DELETE /:id` |
+| Notifications   | `GET /notifications`, `PUT /:id/read`, `PUT /read-all`, `DELETE /:id` |
+| Analytics       | `GET /analytics/{student,teacher,admin}` |
+| Seed            | `POST /seed` |
+
+---
+
+## 🔒 Security Notes
+- Passwords are hashed with **bcrypt**; hashes are never returned by the API.
+- Protected routes verify a JWT and load the current user on every request.
+- `authorize(...roles)` middleware enforces role permissions server-side.
+- `.env` (with DB credentials) is git-ignored — use `.env.example` as the template.
+
+---
+
+## 📜 Available Scripts
+
+**Frontend (root):** `npm run dev` · `npm run build` · `npm run preview` · `npm run lint`
+**Backend (`/backend`):** `npm start` · `npm run dev` (watch) · `npm run seed`
+
+---
+
+Built as a college project demonstrating a production-style full-stack architecture. 🎓
