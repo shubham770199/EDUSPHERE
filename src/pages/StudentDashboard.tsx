@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Calendar, BookOpen, FileText, TrendingUp, Award, ArrowLeft, Send, Megaphone, Loader2,
+  Calendar, BookOpen, FileText, TrendingUp, Award, ArrowLeft, Send, Megaphone, Loader2, Film,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -105,6 +105,9 @@ const StudentDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate("/lectures")}>
+              <Film className="h-4 w-4 mr-1" /> Lectures
+            </Button>
             <Button variant="outline" size="sm" className="rounded-full hidden sm:flex" onClick={() => navigate("/courses")}>
               <BookOpen className="h-4 w-4 mr-1" /> Courses
             </Button>

@@ -15,6 +15,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Courses from "./pages/Courses";
+import Lectures from "./pages/Lectures";
 import Profile from "./pages/Profile";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
@@ -68,6 +69,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Courses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lectures"
+                element={
+                  <ProtectedRoute>
+                    <Lectures />
                   </ProtectedRoute>
                 }
               />

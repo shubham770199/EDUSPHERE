@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, Moon, Sun, BookOpen, LayoutDashboard } from "lucide-react";
+import { User, LogOut, Moon, Sun, BookOpen, LayoutDashboard, Film } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
@@ -74,6 +74,10 @@ const UserProfile = () => {
         <DropdownMenuItem onClick={() => navigate("/courses")}>
           <BookOpen className="mr-2 h-4 w-4" />
           <span>Courses</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/lectures")}>
+          <Film className="mr-2 h-4 w-4" />
+          <span>Lectures</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
           {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}

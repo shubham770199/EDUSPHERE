@@ -115,6 +115,32 @@ Roles: `student`, `teacher`, `admin`. Routes list the role(s) allowed.
 
 ---
 
+## Lectures — `/lectures`  (recorded video, stored on AWS S3)
+
+| Method | Path | Access | Notes |
+|--------|------|--------|-------|
+| GET | `/lectures` | Auth | Role-aware list. Each item includes a temporary signed `videoUrl` |
+| POST | `/lectures` | teacher/admin | **multipart/form-data**: `video` (file) + `title`, `course`, `description?`. Max 500 MB. Notifies enrolled students |
+| GET | `/lectures/:id` | Auth | Single lecture + fresh signed `videoUrl` (students must be enrolled; increments `views`) |
+| DELETE | `/lectures/:id` | owner/admin | Deletes the DB record and the S3 object |
+
+Videos are stored privately in S3 and served via short-lived **pre-signed URLs**
+(generated per request), so the bucket never needs to be public.
+
+---
+
+## AI Study Assistant — `/chat`
+
+| Method | Path | Access | Body |
+|--------|------|--------|------|
+| POST | `/chat` | Auth | `{ message, history?: [{ role:"user"\|"assistant", content }] }` → `{ reply }` |
+
+Backed by the OpenAI Chat Completions API (`OPENAI_MODEL`, default `gpt-4o-mini`).
+The API key stays server-side and is never exposed to the browser. History is
+capped to the last 10 turns to bound token usage.
+
+---
+
 ## Analytics — `/analytics`
 
 | Method | Path | Access | Returns |

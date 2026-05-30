@@ -17,7 +17,8 @@ and three role-specific dashboards with live analytics charts.
 - 📢 **Announcements** — broadcast to everyone, a role, or a specific course
 - 🧑‍💼 **Profile management** — edit details + change password
 - 🌗 **Light/Dark theme** toggle
-- 🤖 **AI assistant chatbot** — built-in help bot
+- 🎬 **Recorded lectures** — teachers upload videos to **AWS S3**, students stream them in-app via signed URLs
+- 🤖 **AI study assistant** — floating chatbot powered by **OpenAI** (gpt-4o-mini)
 - 📱 **Responsive, modern UI** — Tailwind CSS + shadcn/ui with glassmorphism design
 
 ### 👨‍🎓 Student
@@ -25,10 +26,13 @@ and three role-specific dashboards with live analytics charts.
 - Browse & **self-enrol** in courses
 - View assignments and **submit / resubmit** work (auto late-detection)
 - See grades & teacher feedback, **grade-trend line chart**
+- 🎬 **Watch recorded lectures** for enrolled courses, streamed from S3
+- 🤖 Ask the **AI study assistant** to explain concepts while studying
 - 🏅 **Gamification** — badges for attendance, top scores and consistency
 
 ### 👩‍🏫 Teacher
 - Create & manage **courses** and **assignments**
+- **Upload recorded lectures** (videos stored on AWS S3) — enrolled students are notified
 - **Mark attendance** (present / absent / late / excused) per class session
 - **Grade submissions** with feedback (students are notified)
 - Analytics: enrolment bar chart, pending-grading count, average performance
@@ -48,6 +52,8 @@ and three role-specific dashboards with live analytics charts.
 | Backend    | Node.js, Express, Mongoose |
 | Database   | MongoDB (Atlas or local) |
 | Auth       | JWT (jsonwebtoken) + bcryptjs |
+| Storage    | AWS S3 (recorded lecture videos, via AWS SDK v3 + multer) |
+| AI         | OpenAI API (study-assistant chatbot) |
 
 ---
 
@@ -135,6 +141,8 @@ for the full endpoint list, payloads and role requirements.
 | Attendance      | `POST /attendance`, `GET /attendance/me`, `/course/:id`, `/student/:id` |
 | Announcements   | `GET/POST /announcements`, `DELETE /:id` |
 | Notifications   | `GET /notifications`, `PUT /:id/read`, `PUT /read-all`, `DELETE /:id` |
+| Lectures        | `GET/POST /lectures` (multipart upload → S3), `GET/DELETE /lectures/:id` |
+| AI Chat         | `POST /chat` (OpenAI study assistant) |
 | Analytics       | `GET /analytics/{student,teacher,admin}` |
 | Seed            | `POST /seed` |
 

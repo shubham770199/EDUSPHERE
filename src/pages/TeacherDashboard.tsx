@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Users, FileText, Calendar, TrendingUp, Upload, Plus, ArrowLeft, Megaphone, BookOpen, Loader2, CheckSquare,
+  Users, FileText, Calendar, TrendingUp, Upload, Plus, ArrowLeft, Megaphone, BookOpen, Loader2, CheckSquare, Film,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,6 +87,9 @@ const TeacherDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/lectures")} className="hidden sm:flex">
+              <Film className="mr-2 h-4 w-4" /> Lectures
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setAnnounceOpen(true)} className="hidden sm:flex">
               <Megaphone className="mr-2 h-4 w-4" /> Announce
             </Button>

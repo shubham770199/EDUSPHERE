@@ -1,88 +1,94 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Minimize2, Maximize2, X } from 'lucide-react';
-import { chatbotService, ChatMessage } from '@/services/chatbotService';
-import { useAuth } from '@/contexts/AuthContext';
+import { MessageCircle, Send, Minimize2, X, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { aiChatService, AiMessage } from "@/services/aiChatService";
 
-interface ChatBotProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+interface ChatMessage extends AiMessage {
+  id: string;
+  timestamp: number;
 }
 
-const ChatBot: React.FC<ChatBotProps> = ({ isOpen: initialOpen = false, onClose }) => {
-  const [isOpen, setIsOpen] = useState(initialOpen);
+const SUGGESTIONS = [
+  "Explain binary search trees simply",
+  "Give me tips to improve my attendance",
+  "How do I submit an assignment?",
+  "Summarize Newton's three laws",
+];
+
+const ChatBot = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('');
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
 
-  // Initialize chat session
+  // Persist a short history per user so the conversation survives refreshes.
+  const storeKey = user ? `edu_ai_chat_${user.id}` : "";
+
   useEffect(() => {
-    if (user) {
-      const session = chatbotService.getOrCreateSession(user.id);
-      setSessionId(session.id);
-      const history = chatbotService.getChatHistory(session.id);
-      setMessages(history);
+    if (!storeKey) return;
+    const saved = localStorage.getItem(storeKey);
+    if (saved) {
+      try {
+        setMessages(JSON.parse(saved));
+      } catch {
+        /* ignore */
+      }
     }
-  }, [user]);
+  }, [storeKey]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    if (storeKey) localStorage.setItem(storeKey, JSON.stringify(messages.slice(-30)));
+  }, [messages, storeKey]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || !sessionId) return;
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, loading]);
 
-    setIsLoading(true);
+  // Only show the assistant to logged-in users (the API requires auth).
+  if (!isAuthenticated) return null;
+
+  const send = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+
+    const userMsg: ChatMessage = { id: `u_${Date.now()}`, role: "user", content: trimmed, timestamp: Date.now() };
+    const history: AiMessage[] = messages.map((m) => ({ role: m.role, content: m.content }));
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
     try {
-      const { userMessage, botResponse } = await chatbotService.sendMessage(sessionId, inputValue);
-      setMessages([...messages, userMessage, botResponse]);
-      setInputValue('');
-    } catch (error) {
-      console.error('Chat error:', error);
+      const reply = await aiChatService.send(trimmed, history);
+      setMessages((prev) => [...prev, { id: `a_${Date.now()}`, role: "assistant", content: reply, timestamp: Date.now() }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "The assistant is unavailable right now.";
+      setMessages((prev) => [...prev, { id: `e_${Date.now()}`, role: "assistant", content: `⚠️ ${msg}`, timestamp: Date.now() }]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const clear = () => {
+    setMessages([]);
+    if (storeKey) localStorage.removeItem(storeKey);
   };
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
-    if (onClose && !isOpen === false) {
-      onClose();
-    }
-  };
-
-  const clearHistory = () => {
-    if (sessionId) {
-      chatbotService.clearHistory(sessionId);
-      setMessages([]);
-    }
-  };
-
+  // Floating launcher
   if (!isOpen) {
     return (
       <button
-        onClick={toggleChat}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center z-40"
-        title="Chat with AI Assistant"
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-gradient-primary text-white shadow-elevated hover:scale-110 transition-transform flex items-center justify-center z-40"
+        title="AI Study Assistant"
       >
-        <MessageCircle className="h-6 w-6" />
+        <Sparkles className="h-6 w-6" />
       </button>
     );
   }
@@ -90,26 +96,17 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen: initialOpen = false, onClose 
   if (isMinimized) {
     return (
       <div className="fixed bottom-6 right-6 z-40">
-        <Card className="w-64 shadow-lg">
+        <Card className="w-64 shadow-elevated">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <MessageCircle className="h-4 w-4" />
-                AI Assistant
+                <Sparkles className="h-4 w-4" /> AI Assistant
               </CardTitle>
               <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setIsMinimized(false)}
-                >
-                  <Maximize2 className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsMinimized(false)}>
+                  <MessageCircle className="h-4 w-4" />
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={toggleChat}
-                >
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setIsOpen(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -122,73 +119,65 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen: initialOpen = false, onClose 
 
   return (
     <div className="fixed bottom-6 right-6 z-40">
-      <Card className="w-96 h-screen md:h-[600px] shadow-xl flex flex-col">
+      <Card className="w-[22rem] sm:w-96 h-[70vh] sm:h-[600px] shadow-2xl flex flex-col">
         <CardHeader className="border-b pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              EduSphere AI Assistant
+              <Sparkles className="h-5 w-5 text-primary" /> Study Assistant
             </CardTitle>
             <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsMinimized(true)}
-              >
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsMinimized(true)}>
                 <Minimize2 className="h-4 w-4" />
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={toggleChat}
-              >
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Get instant help with attendance, assignments, and more
-          </p>
+          <p className="text-xs text-muted-foreground mt-1">Powered by OpenAI • ask me anything about your studies</p>
         </CardHeader>
 
         <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
             <div className="space-y-4">
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-8">
-                  <MessageCircle className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                <div className="text-center py-6 space-y-4">
+                  <Sparkles className="h-10 w-10 text-primary mx-auto opacity-60" />
                   <p className="text-sm text-muted-foreground">
-                    Hi! I'm your AI Assistant. Ask me anything about attendance, assignments, grades, or how to use the platform.
+                    Hi {user?.name?.split(" ")[0] || "there"}! I'm your AI study assistant. Try one of these:
                   </p>
+                  <div className="flex flex-col gap-2">
+                    {SUGGESTIONS.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => send(s)}
+                        className="text-xs text-left rounded-lg border px-3 py-2 hover:bg-muted/60 transition-colors"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
+                messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-[80%] px-4 py-2 rounded-lg ${
-                        msg.sender === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
+                      className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+                        m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      {m.content}
                     </div>
                   </div>
                 ))
               )}
-              {isLoading && (
+              {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-muted text-muted-foreground px-4 py-2 rounded-lg">
+                  <div className="bg-muted px-4 py-3 rounded-2xl">
                     <div className="flex gap-1">
-                      <span className="h-2 w-2 bg-current rounded-full animate-bounce" />
-                      <span className="h-2 w-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                      <span className="h-2 w-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <span className="h-2 w-2 bg-current rounded-full animate-bounce opacity-60" />
+                      <span className="h-2 w-2 bg-current rounded-full animate-bounce opacity-60" style={{ animationDelay: "0.15s" }} />
+                      <span className="h-2 w-2 bg-current rounded-full animate-bounce opacity-60" style={{ animationDelay: "0.3s" }} />
                     </div>
                   </div>
                 </div>
@@ -196,32 +185,29 @@ const ChatBot: React.FC<ChatBotProps> = ({ isOpen: initialOpen = false, onClose 
             </div>
           </ScrollArea>
 
-          <div className="border-t p-4 space-y-2">
+          <div className="border-t p-3 space-y-2">
             <div className="flex gap-2">
               <Input
-                placeholder="Ask a question..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                className="text-sm"
+                placeholder="Ask a study question..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    send(input);
+                  }
+                }}
+                disabled={loading}
               />
-              <Button
-                size="sm"
-                onClick={handleSendMessage}
-                disabled={isLoading || !inputValue.trim()}
-              >
+              <Button size="icon" onClick={() => send(input)} disabled={loading || !input.trim()}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={clearHistory}
-              className="w-full text-xs"
-            >
-              Clear Chat
-            </Button>
+            {messages.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={clear} className="w-full text-xs h-7">
+                Clear chat
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
