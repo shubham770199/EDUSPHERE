@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 
 const DEMO_ACCOUNTS = [
-  { label: "Student", email: "student@edusphere.com" },
+  { label: "Student", email: "yash@edusphere.com" },
   { label: "Teacher", email: "teacher@edusphere.com" },
   { label: "Admin", email: "admin@edusphere.com" },
 ];

@@ -118,7 +118,7 @@ Run `npm run seed` (or POST `/api/seed`) to create demo data, then use the
 |---------|--------------------------|---------------|
 | Admin   | admin@edusphere.com      | `password123` |
 | Teacher | teacher@edusphere.com    | `password123` |
-| Student | student@edusphere.com    | `password123` |
+| Student | yash@edusphere.com       | `password123` |
 
 The seed also creates extra teachers/students, 3 courses, 5 assignments,
 sample submissions, attendance records and announcements.

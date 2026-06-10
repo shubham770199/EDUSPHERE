@@ -46,9 +46,9 @@ async function seedDatabase() {
   ]);
 
   const students = await User.create([
-    { name: 'Bob Student', email: 'student@edusphere.com', password: 'password123', role: 'student', department: 'Computer Science', rollNumber: 'CS2026001' },
-    { name: 'Emma Wilson', email: 'emma@edusphere.com', password: 'password123', role: 'student', department: 'Computer Science', rollNumber: 'CS2026002' },
-    { name: 'Liam Brown', email: 'liam@edusphere.com', password: 'password123', role: 'student', department: 'Physics', rollNumber: 'PH2026003' },
+    { name: 'Yash', email: 'yash@edusphere.com', password: 'password123', role: 'student', department: 'Computer Science', rollNumber: 'CS2026001' },
+    { name: 'Archna', email: 'archna@edusphere.com', password: 'password123', role: 'student', department: 'Computer Science', rollNumber: 'CS2026002' },
+    { name: 'Shubham', email: 'shubham@edusphere.com', password: 'password123', role: 'student', department: 'Physics', rollNumber: 'PH2026003' },
     { name: 'Olivia Davis', email: 'olivia@edusphere.com', password: 'password123', role: 'student', department: 'Computer Science', rollNumber: 'CS2026004' },
     { name: 'Noah Miller', email: 'noah@edusphere.com', password: 'password123', role: 'student', department: 'Physics', rollNumber: 'PH2026005' },
   ]);
@@ -141,7 +141,7 @@ async function seedDatabase() {
     demoCredentials: {
       admin: 'admin@edusphere.com / password123',
       teacher: 'teacher@edusphere.com / password123',
-      student: 'student@edusphere.com / password123',
+      student: 'yash@edusphere.com / password123',
     },
   };
 }
